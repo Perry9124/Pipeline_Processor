@@ -8,7 +8,7 @@ module ALU (
     output reg signed [31:0] E_alu_out,
     output reg branch
 );
-    wire [31:0] add_result, sub_result, shiftl_result, shiftr_result, sra_result;
+    wire [31:0] add_result, sub_result, shiftl_result, shiftr_result, sra_result, pc4_result;
     wire [31:0] sra_offset, sra_sign;
     assign shiftl_result = operand1 << operand2[4:0];
     assign shiftr_result = operand1 >> operand2[4:0];
@@ -33,6 +33,11 @@ module ALU (
         .b(shiftr_result),
         .sum(sra_result)
     );
+    Adder pc4(
+        .a(operand1),
+        .b(32'b100),
+        .sum(pc4_result)
+    );
     always@(*) begin
         case(E_opcode)
         `LUI: begin
@@ -44,11 +49,11 @@ module ALU (
             branch = 1'b0;
         end
         `JAL: begin
-            E_alu_out = operand1 + 32'b100;   // PC + 4
+            E_alu_out = pc4_result;   // PC + 4
             branch = 1'b1;
         end
         `JALR: begin
-            E_alu_out = operand1 + 32'b100;   // PC + 4
+            E_alu_out = pc4_result;   // PC + 4
             branch = 1'b1;
         end
         `BTYPE: begin
@@ -166,10 +171,10 @@ module ALU (
             endcase
         end
         `STYPE: begin
-            E_alu_out = operand1 + operand2;  // rs1 + imm
+            E_alu_out = add_result;
         end
         `LOAD: begin
-            E_alu_out = operand1 + operand2;  // rs1 + imm
+            E_alu_out = add_result;
         end
         default: begin
             E_alu_out = 32'b0;
